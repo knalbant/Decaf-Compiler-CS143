@@ -47,7 +47,8 @@ constexpr int TAB_WIDTH = 8;
  * be called once for each pattern scanned from the file, before
  * executing its action.
  */
-static void DoBeforeEachAction(); 
+static void DoBeforeEachAction();
+
 #define YY_USER_ACTION DoBeforeEachAction();
 
 %}
@@ -60,21 +61,24 @@ static void DoBeforeEachAction();
   */
 
 
+
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
   * %% markers which delimit the Rules section. 
   */ 
 
-[\t]+         {  colno += strlen(yytext) * TAB_WIDTH; }
-[ ]+          {  colno += strlen(yytext); }
 
-"\n"          {  colno = 1; lineno++; return yytext[0]; }
+[\t]          { 
+                int len = yyleng * TAB_WIDTH; 
+                yylloc.last_column = yylloc.first_column + len - 1;
+                colno = yylloc.first_column + len; 
+              }
 
-[0-9]+        {  yylloc.first_line = lineno; 
-                 yylloc.first_column = colno;
-                 yylval.integerConstant = std::atoi(yytext); 
-                 colno += strlen(yytext);
-                 return T_Int; }
+[ ]+          {  }
+
+"\n"          { colno = 1; lineno++; }
+
+[0-9]+        { return T_Int; }
 
 
 
@@ -113,4 +117,8 @@ void InitScanner()
  */
 static void DoBeforeEachAction()
 {
+    yylloc.first_line = lineno;
+    yylloc.first_column = colno;
+    yylloc.last_column = yylloc.first_column + yyleng - 1;
+    colno += yyleng;
 }
