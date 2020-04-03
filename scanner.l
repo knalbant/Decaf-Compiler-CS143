@@ -61,7 +61,7 @@ static void DoBeforeEachAction();
   * entries in the Rules section later. 
   */
 
-%s LEXING_STRING
+%x LEXING_STRING
 
 IDENTIFIER    [a-z][A-Z0-9_a-z]+
 
@@ -84,6 +84,9 @@ DOUBLE_LIT    {DOUBLE_LIT1}|{DOUBLE_LIT2}
 STRING_LIT    \".*\"
 
 DOUBLE_QUOTE  \" 
+
+VALID_STRING     {DOUBLE_QUOTE}[^\n\"]*{DOUBLE_QUOTE}
+INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
 
 NEWLINE       "\n"|"\r\n"
 
@@ -123,13 +126,12 @@ NEWLINE       "\n"|"\r\n"
  /* End Reserved words */
 
 
-
-{DOUBLE_QUOTE}                  { BEGIN(LEXING_STRING); }
- /* <LEXING_STRING>\n               { BEGIN(INITIAL}; } */
-
  /* 
   * The following actions deal with lexing various kinds of literals
   */ 
+{VALID_STRING}      { yylval.stringConstant = strdup(yytext); return T_StringConstant; }
+{INVALID_STRING}    { ReportError::UntermString(&yylloc, yytext); }
+
 {BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
  /* TODO: need to deal with full scientific notation */ 
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
@@ -180,7 +182,6 @@ NEWLINE       "\n"|"\r\n"
 void InitScanner()
 {
     PrintDebug("lex", "Initializing scanner");
-    //yy_flex_debug = false;
     yy_flex_debug = true;
 }
 
