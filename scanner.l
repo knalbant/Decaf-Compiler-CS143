@@ -11,7 +11,8 @@
  */
 
 #include <string.h>
-#include "scanner.h"
+#include <algorithm>
+#include "scanner.h" 
 #include "utility.h" // for PrintDebug()
 #include "errors.h"
 
@@ -60,25 +61,99 @@ static void DoBeforeEachAction();
   * entries in the Rules section later. 
   */
 
+%s LEXING_STRING
 
+IDENTIFIER    [a-z][A-Z0-9_a-z]+
+
+DIMS          "[]" 
+
+BOOL_LIT      "true"|"false"
+
+DIGIT         [0-9]
+HEX_DIGIT     [0-9a-fA-F]
+DECIMAL_LIT   [0-9]+
+HEX_PRE       0(x|X)
+HEX_LIT       {HEX_PRE}{HEX_DIGIT}+
+INT_LIT       {HEX_LIT}|{DECIMAL_LIT}
+
+EXP           ("e"{DIGIT}+)
+DOUBLE_LIT1   {DIGIT}+"."{DIGIT}+?{EXP}?
+DOUBLE_LIT2   {DIGIT}+{EXP}
+DOUBLE_LIT    {DOUBLE_LIT1}|{DOUBLE_LIT2}
+
+STRING_LIT    \".*\"
+
+DOUBLE_QUOTE  \" 
+
+NEWLINE       "\n"|"\r\n"
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
   * %% markers which delimit the Rules section. 
   */ 
 
+ /* 
+  * The following set of definitions correspond to reserved words in the 
+  * Decaf language
+  */
+"int"             { return T_Int; }
+"double"          { return T_Double; }
+"bool"            { return T_Bool; }
+"string"          { return T_String; }
+"class"           { return T_Class; }
+"null"            { return T_Null; }
+{DIMS}            { return T_Dims; }
 
-[\t]          { 
-                int len = yyleng * TAB_WIDTH; 
-                yylloc.last_column = yylloc.first_column + len - 1;
-                colno = yylloc.first_column + len; 
-              }
+"while"           { return T_While; }
+"for"             { return T_For; }
+"if"              { return T_If; }
+"else"            { return T_Else; }
+"return"          { return T_Return; }
+"break"           { return T_Break; }
+"extends"         { return T_Extends; }
+"this"            { return T_This; }
+"implements"      { return T_Implements; }
+"interface"       { return T_Interface; }
+"new"             { return T_New; }
 
-[ ]+          {  }
+"NewArray"        { return T_NewArray; }
+"Print"           { return T_Print; }
+"ReadInteger"     { return T_ReadInteger; }
+"ReadLine"        { return T_ReadLine; }
+ /* End Reserved words */
 
-"\n"          { colno = 1; lineno++; }
 
-[0-9]+        { return T_Int; }
+
+{DOUBLE_QUOTE}                  { BEGIN(LEXING_STRING); }
+ /* <LEXING_STRING>\n               { BEGIN(INITIAL}; } */
+
+ /* 
+  * The following actions deal with lexing various kinds of literals
+  */ 
+{BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
+ /* TODO: need to deal with full scientific notation */ 
+{DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
+{HEX_LIT}         { return T_IntConstant; }
+{DECIMAL_LIT}     { yylval.integerConstant = atoi(yytext); return T_IntConstant; }
+ /* End literals */ 
+
+
+
+{IDENTIFIER}      { strncpy(yylval.identifier, yytext, std::min(yyleng, MaxIdentLen)); 
+                    yylval.identifier[MaxIdentLen] = '\0';
+                    return T_Identifier; }
+
+
+[\t]                { 
+                      int len = yyleng * TAB_WIDTH; 
+                      yylloc.last_column = yylloc.first_column + len - 1;
+                      colno = yylloc.first_column + len; 
+                    }
+
+[ ]+                {  }
+
+{NEWLINE}           { colno = 1; lineno++; }
+
 
 
 
