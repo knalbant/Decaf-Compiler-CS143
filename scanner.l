@@ -63,32 +63,32 @@ static void DoBeforeEachAction();
 
 %x LEXING_STRING
 
-IDENTIFIER    [a-z][A-Z0-9_a-z]+
+IDENTIFIER       [a-z][A-Z0-9_a-z]+
 
-DIMS          "[]" 
+DIMS             "[]" 
 
-BOOL_LIT      "true"|"false"
+BOOL_LIT         "true"|"false"
 
-DIGIT         [0-9]
-HEX_DIGIT     [0-9a-fA-F]
-DECIMAL_LIT   [0-9]+
-HEX_PRE       0(x|X)
-HEX_LIT       {HEX_PRE}{HEX_DIGIT}+
-INT_LIT       {HEX_LIT}|{DECIMAL_LIT}
+DIGIT            [0-9]
+HEX_DIGIT        [0-9a-fA-F]
+DECIMAL_LIT      [0-9]+
+HEX_PRE          0(x|X)
+HEX_LIT          {HEX_PRE}{HEX_DIGIT}+
+INT_LIT          {HEX_LIT}|{DECIMAL_LIT}
 
-EXP           ("e"{DIGIT}+)
-DOUBLE_LIT1   {DIGIT}+"."{DIGIT}+?{EXP}?
-DOUBLE_LIT2   {DIGIT}+{EXP}
-DOUBLE_LIT    {DOUBLE_LIT1}|{DOUBLE_LIT2}
+EXP              ("e"[+-]?{DIGIT}+)
+DOUBLE_LIT1      {DIGIT}+"."{DIGIT}+?{EXP}?
+DOUBLE_LIT2      {DIGIT}+{EXP}
+DOUBLE_LIT       {DOUBLE_LIT1}|{DOUBLE_LIT2}
 
-STRING_LIT    \".*\"
+STRING_LIT       \".*\"
 
-DOUBLE_QUOTE  \" 
+DOUBLE_QUOTE     \" 
 
 VALID_STRING     {DOUBLE_QUOTE}[^\n\"]*{DOUBLE_QUOTE}
 INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
 
-NEWLINE       "\n"|"\r\n"
+NEWLINE          "\n"|"\r\n"
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
@@ -131,9 +131,7 @@ NEWLINE       "\n"|"\r\n"
   */ 
 {VALID_STRING}      { yylval.stringConstant = strdup(yytext); return T_StringConstant; }
 {INVALID_STRING}    { ReportError::UntermString(&yylloc, yytext); }
-
 {BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
- /* TODO: need to deal with full scientific notation */ 
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
 {HEX_LIT}         { return T_IntConstant; }
 {DECIMAL_LIT}     { yylval.integerConstant = atoi(yytext); return T_IntConstant; }
