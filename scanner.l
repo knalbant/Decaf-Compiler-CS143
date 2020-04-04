@@ -147,9 +147,15 @@ M_COMMENT_F      "*/"
 
 {S_COMMENT}       { }
 
+{M_COMMENT_S}     { printf("MLC start\n"); BEGIN(MULTI_COMMENT); }
 
-{IDENTIFIER}      { strncpy(yylval.identifier, yytext, std::min(yyleng, MaxIdentLen)); 
-                    yylval.identifier[MaxIdentLen] = '\0';
+<MULTI_COMMENT>{M_COMMENT_F} { printf("MLC end\n"); BEGIN(INITIAL); }
+
+
+
+{IDENTIFIER}      { size_t n_bytes = std::min(yyleng, MaxIdentLen);
+                    strncpy(yylval.identifier, yytext, n_bytes); 
+                    yylval.identifier[n_bytes] = '\0';
                     return T_Identifier; }
 
 [\t]              { 
