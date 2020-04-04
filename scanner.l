@@ -90,6 +90,13 @@ INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
 
 NEWLINE          "\n"|"\r\n"
 
+S_COMMENT        "//".*
+
+%x MULTI_COMMENT
+
+M_COMMENT_S      "/*"
+M_COMMENT_F      "*/"
+
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
   * %% markers which delimit the Rules section. 
@@ -138,17 +145,18 @@ NEWLINE          "\n"|"\r\n"
  /* End literals */ 
 
 
+{S_COMMENT}       { }
+
 
 {IDENTIFIER}      { strncpy(yylval.identifier, yytext, std::min(yyleng, MaxIdentLen)); 
                     yylval.identifier[MaxIdentLen] = '\0';
                     return T_Identifier; }
 
-
-[\t]                { 
-                      int len = yyleng * TAB_WIDTH; 
-                      yylloc.last_column = yylloc.first_column + len - 1;
-                      colno = yylloc.first_column + len; 
-                    }
+[\t]              { 
+                    int len = yyleng * TAB_WIDTH; 
+                    yylloc.last_column = yylloc.first_column + len - 1;
+                    colno = yylloc.first_column + len; 
+                  }
 
 [ ]+                {  }
 
