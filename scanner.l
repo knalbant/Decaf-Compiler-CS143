@@ -136,8 +136,8 @@ M_COMMENT_F      "*/"
  /* 
   * The following actions deal with lexing various kinds of literals
   */ 
-{VALID_STRING}      { yylval.stringConstant = strdup(yytext); return T_StringConstant; }
-{INVALID_STRING}    { ReportError::UntermString(&yylloc, yytext); }
+{VALID_STRING}    { yylval.stringConstant = strdup(yytext); return T_StringConstant; }
+{INVALID_STRING}  { ReportError::UntermString(&yylloc, yytext); }
 {BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
 {HEX_LIT}         { return T_IntConstant; }
@@ -147,10 +147,11 @@ M_COMMENT_F      "*/"
 
 {S_COMMENT}       { }
 
-{M_COMMENT_S}     { printf("MLC start\n"); BEGIN(MULTI_COMMENT); }
-
-<MULTI_COMMENT>{M_COMMENT_F} { printf("MLC end\n"); BEGIN(INITIAL); }
-
+{M_COMMENT_S}                 { BEGIN(MULTI_COMMENT); }
+<MULTI_COMMENT>{M_COMMENT_F}  { BEGIN(INITIAL); }
+<MULTI_COMMENT>[\n]           { ++lineno; colno = 1; }
+<MULTI_COMMENT>.              { }
+<MULTI_COMMENT><<EOF>>        { BEGIN(INITIAL); ReportError::UntermComment(); }
 
 
 {IDENTIFIER}      { size_t n_bytes = std::min(yyleng, MaxIdentLen);
@@ -194,7 +195,7 @@ M_COMMENT_F      "*/"
 void InitScanner()
 {
     PrintDebug("lex", "Initializing scanner");
-    yy_flex_debug = true;
+    yy_flex_debug = false;
 }
 
 
