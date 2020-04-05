@@ -92,7 +92,6 @@ S_COMMENT        "//".*
 M_COMMENT_S      "/*"
 M_COMMENT_F      "*/"
 
- /* Multi character operators */ 
 LTE    <=
 GTE    >=
 EQ     ==
@@ -109,7 +108,6 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 
  /* 
   * The following set of definitions correspond to reserved words in the 
-  * Decaf language
   */
 "int"             { return T_Int; }
 "double"          { return T_Double; }
@@ -135,16 +133,17 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 "Print"           { return T_Print; }
 "ReadInteger"     { return T_ReadInteger; }
 "ReadLine"        { return T_ReadLine; }
- /* End Reserved words */
 
+
+ /* Deal with all multi-characer operators */
 {AND} { return T_And; }
 {OR}  { return T_Or; }
-
 {LTE} { return T_LessEqual; }
 {GTE} { return T_GreaterEqual; }
 {EQ}  { return T_Equal; }
 {NEQ} { return T_NotEqual; }
 
+ /* Handle all single character operators and misc. punctuation */
 {SINGLE_CHAR_OPS_PUNC} { return *yytext; }
 
  /* 
@@ -156,11 +155,9 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
 {HEX_LIT}         { return T_IntConstant; }
 {DECIMAL_LIT}     { yylval.integerConstant = atoi(yytext); return T_IntConstant; }
- /* End literals */ 
 
 
-{S_COMMENT}       { }
-
+{S_COMMENT}                   { }
 {M_COMMENT_S}                 { BEGIN(MULTI_COMMENT); }
 <MULTI_COMMENT>{M_COMMENT_F}  { BEGIN(INITIAL); }
 <MULTI_COMMENT>{NEWLINE}      { ++lineno; colno = 1; }
@@ -179,11 +176,11 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
                     colno = yylloc.first_column + len; 
                   }
 
-[ ]+                {  }
+[ ]+              {  }
 
-{NEWLINE}           { colno = 1; lineno++; }
+{NEWLINE}         { colno = 1; lineno++; }
 
-.                  { printf("Matched char with no rule\n"); }
+.                 { ReportError::UnrecogChar(&yylloc, *yytext); }
 
 
 %%
