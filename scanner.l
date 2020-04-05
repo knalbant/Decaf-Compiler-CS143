@@ -74,10 +74,8 @@ HEX_PRE          0(x|X)
 HEX_LIT          {HEX_PRE}{HEX_DIGIT}+
 INT_LIT          {HEX_LIT}|{DECIMAL_LIT}
 
-EXP              ("e"[+-]?{DIGIT}+)
-DOUBLE_LIT1      {DIGIT}+"."{DIGIT}+?{EXP}?
-DOUBLE_LIT2      {DIGIT}+{EXP}
-DOUBLE_LIT       {DOUBLE_LIT1}|{DOUBLE_LIT2}
+EXP              ([Ee][+-]?{DIGIT}+)
+DOUBLE_LIT       {DIGIT}+"."{DIGIT}+?{EXP}?
 
 STRING_LIT       \".*\"
 
@@ -100,7 +98,7 @@ NEQ    !=
 AND    &&
 OR     "\|\|"
 
-SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
+SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
@@ -155,7 +153,9 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 {INVALID_STRING}  { ReportError::UntermString(&yylloc, yytext); }
 {BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
-{HEX_LIT}         { return T_IntConstant; }
+{HEX_LIT}         { std::stringstream ss(yytext); 
+                    ss >> std::hex >> yylval.integerConstant;
+                    return T_IntConstant; }
 {DECIMAL_LIT}     { yylval.integerConstant = atoi(yytext); return T_IntConstant; }
 
 
