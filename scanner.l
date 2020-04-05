@@ -60,9 +60,6 @@ static void DoBeforeEachAction();
   * as a simple substitution mechanism that allows for more readable
   * entries in the Rules section later. 
   */
-
-%x LEXING_STRING
-
 IDENTIFIER       [a-z][A-Z0-9_a-z]+
 
 DIMS             "[]" 
@@ -90,12 +87,20 @@ INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
 
 NEWLINE          "\n"|"\r\n"
 
-S_COMMENT        "//".*
-
 %x MULTI_COMMENT
-
+S_COMMENT        "//".*
 M_COMMENT_S      "/*"
 M_COMMENT_F      "*/"
+
+ /* Multi character operators */ 
+LTE    <=
+GTE    >=
+EQ     ==
+NEQ    !=
+AND    &&
+OR     "\|\|"
+
+SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
@@ -132,6 +137,15 @@ M_COMMENT_F      "*/"
 "ReadLine"        { return T_ReadLine; }
  /* End Reserved words */
 
+{AND} { return T_And; }
+{OR}  { return T_Or; }
+
+{LTE} { return T_LessEqual; }
+{GTE} { return T_GreaterEqual; }
+{EQ}  { return T_Equal; }
+{NEQ} { return T_NotEqual; }
+
+{SINGLE_CHAR_OPS_PUNC} { return *yytext; }
 
  /* 
   * The following actions deal with lexing various kinds of literals
@@ -149,7 +163,7 @@ M_COMMENT_F      "*/"
 
 {M_COMMENT_S}                 { BEGIN(MULTI_COMMENT); }
 <MULTI_COMMENT>{M_COMMENT_F}  { BEGIN(INITIAL); }
-<MULTI_COMMENT>[\n]           { ++lineno; colno = 1; }
+<MULTI_COMMENT>{NEWLINE}      { ++lineno; colno = 1; }
 <MULTI_COMMENT>.              { }
 <MULTI_COMMENT><<EOF>>        { BEGIN(INITIAL); ReportError::UntermComment(); }
 
@@ -169,7 +183,7 @@ M_COMMENT_F      "*/"
 
 {NEWLINE}           { colno = 1; lineno++; }
 
-
+.                  { printf("Matched char with no rule\n"); }
 
 
 %%
