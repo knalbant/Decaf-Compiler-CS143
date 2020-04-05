@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <algorithm>
+#include <sstream>
 #include "scanner.h" 
 #include "utility.h" // for PrintDebug()
 #include "errors.h"
@@ -60,7 +61,7 @@ static void DoBeforeEachAction();
   * as a simple substitution mechanism that allows for more readable
   * entries in the Rules section later. 
   */
-IDENTIFIER       [a-z][A-Z0-9_a-z]+
+IDENTIFIER       [A-Za-z][A-Z0-9_a-z]*
 
 DIMS             "[]" 
 
@@ -117,6 +118,7 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 "null"            { return T_Null; }
 {DIMS}            { return T_Dims; }
 
+"void"            { return T_Void; }
 "while"           { return T_While; }
 "for"             { return T_For; }
 "if"              { return T_If; }
