@@ -13,7 +13,7 @@
 #include <string.h>
 #include <algorithm>
 #include <sstream>
-#include "scanner.h" 
+#include "scanner.h"
 #include "utility.h" // for PrintDebug()
 #include "errors.h"
 
@@ -39,7 +39,7 @@ int colno  = 1;
 
 constexpr int TAB_WIDTH = 8;
 
-/* Macro: YY_USER_ACTION 
+/* Macro: YY_USER_ACTION
  * ---------------------
  * This flex built-in macro can be defined to provide an action which is
  * always executed prior to any matched rule's action. Basically, it is
@@ -59,11 +59,11 @@ static void DoBeforeEachAction();
   * input file. Here is where you set options for the scanner, define lex
   * states, and can set up definitions to give names to regular expressions
   * as a simple substitution mechanism that allows for more readable
-  * entries in the Rules section later. 
+  * entries in the Rules section later.
   */
 IDENTIFIER       [A-Za-z][A-Z0-9_a-z]*
 
-DIMS             "[]" 
+DIMS             "[]"
 
 BOOL_LIT         "true"|"false"
 
@@ -79,7 +79,7 @@ DOUBLE_LIT       {DIGIT}+"."{DIGIT}+?{EXP}?
 
 STRING_LIT       \".*\"
 
-DOUBLE_QUOTE     \" 
+DOUBLE_QUOTE     \"
 
 VALID_STRING     {DOUBLE_QUOTE}[^\n\"]*{DOUBLE_QUOTE}
 INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
@@ -102,11 +102,11 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
-  * %% markers which delimit the Rules section. 
-  */ 
+  * %% markers which delimit the Rules section.
+  */
 
- /* 
-  * The following set of definitions correspond to reserved words in the 
+ /*
+  * The following set of definitions correspond to reserved words in the
   */
 "int"             { return T_Int; }
 "double"          { return T_Double; }
@@ -146,14 +146,14 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
  /* Handle all single character operators and misc. punctuation */
 {SINGLE_CHAR_OPS_PUNC} { return *yytext; }
 
- /* 
+ /*
   * The following actions deal with lexing various kinds of literals
-  */ 
+  */
 {VALID_STRING}    { yylval.stringConstant = strdup(yytext); return T_StringConstant; }
 {INVALID_STRING}  { ReportError::UntermString(&yylloc, yytext); }
 {BOOL_LIT}        { yylval.boolConstant = *yytext == 't'; return T_BoolConstant; }
 {DOUBLE_LIT}      { yylval.doubleConstant = atof(yytext); return T_DoubleConstant; }
-{HEX_LIT}         { std::stringstream ss(yytext); 
+{HEX_LIT}         { std::stringstream ss(yytext);
                     ss >> std::hex >> yylval.integerConstant;
                     return T_IntConstant; }
 {DECIMAL_LIT}     { yylval.integerConstant = atoi(yytext); return T_IntConstant; }
@@ -172,14 +172,14 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
                         n = MaxIdentLen;
                         ReportError::LongIdentifier(&yylloc, yytext);
                     }
-                    strncpy(yylval.identifier, yytext, n); 
+                    strncpy(yylval.identifier, yytext, n);
                     yylval.identifier[n] = '\0';
                     return T_Identifier; }
 
-[\t]              { 
-                    int len = yyleng * TAB_WIDTH; 
+[\t]              {
+                    int len = yyleng * TAB_WIDTH;
                     yylloc.last_column = yylloc.first_column + len - 1;
-                    colno = yylloc.first_column + len; 
+                    colno = yylloc.first_column + len;
                   }
 
 [ ]+              {  }
