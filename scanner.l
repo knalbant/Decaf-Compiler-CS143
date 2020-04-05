@@ -167,9 +167,13 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%]
 <MULTI_COMMENT><<EOF>>        { BEGIN(INITIAL); ReportError::UntermComment(); }
 
 
-{IDENTIFIER}      { size_t n_bytes = std::min(yyleng, MaxIdentLen);
-                    strncpy(yylval.identifier, yytext, n_bytes); 
-                    yylval.identifier[n_bytes] = '\0';
+{IDENTIFIER}      { size_t n = yyleng;
+                    if (yyleng > MaxIdentLen) {
+                        n = MaxIdentLen;
+                        ReportError::LongIdentifier(&yylloc, yytext);
+                    }
+                    strncpy(yylval.identifier, yytext, n); 
+                    yylval.identifier[n] = '\0';
                     return T_Identifier; }
 
 [\t]              { 
