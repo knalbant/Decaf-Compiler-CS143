@@ -12,6 +12,9 @@
  */
 
 #include <string.h>
+#include <string>
+#include <vector>
+#include <algorithm>
 #include <sstream>
 #include "scanner.h"
 #include "utility.h" // for PrintDebug()
@@ -19,6 +22,7 @@
 #include "parser.h"
 
 /* Macro: YY_USER_ACTION 
+
  * ---------------------
  * This flex built-in macro can be defined to provide an action which is
  * always executed prior to any matched rule's action. Basically, it is
@@ -36,6 +40,8 @@ int colno  = 1;
 
 constexpr int TAB_WIDTH = 8;
 
+std::vector<std::string> lexed_lines;
+std::string current_line;
 
 %}
 
@@ -162,7 +168,7 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
                     yylval.identifier[n] = '\0';
                     return T_Identifier; }
 
-[\t]              {
+<*>[\t]           {
                     int len = yyleng * TAB_WIDTH;
                     yylloc.last_column = yylloc.first_column + len - 1;
                     colno = yylloc.first_column + len;
@@ -170,7 +176,13 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
 
 [ ]+              {  }
 
-{NEWLINE}         { colno = 1; lineno++; }
+<*>{NEWLINE}      { 
+                    current_line.pop_back();
+                    colno = 1; 
+                    lineno++; 
+                    lexed_lines.push_back(std::move(current_line));
+                    current_line.clear();
+                  }
 
 .                 { ReportError::UnrecogChar(&yylloc, *yytext); }
 
@@ -203,7 +215,8 @@ void InitScanner()
 
 
 const char* GetLineNumbered(int num) {
-    return NULL;
+    Assert(num >= 1 && num <= lexed_lines.size());
+    return lexed_lines[num - 1].c_str();
 }
 
 /* Function: DoBeforeEachAction()
@@ -217,4 +230,5 @@ static void DoBeforeEachAction()
     yylloc.first_column = colno;
     yylloc.last_column = yylloc.first_column + yyleng - 1;
     colno += yyleng;
+    current_line += yytext;
 }
