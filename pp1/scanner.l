@@ -11,6 +11,8 @@
  */
 
 #include <string.h>
+#include <string>
+#include <vector>
 #include <algorithm>
 #include <sstream>
 #include "scanner.h"
@@ -38,6 +40,10 @@ int lineno = 1;
 int colno  = 1;
 
 constexpr int TAB_WIDTH = 8;
+
+std::string current_line;
+
+std::vector<std::string> lexed_lines;
 
 /* Macro: YY_USER_ACTION
  * ---------------------
@@ -176,7 +182,7 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
                     yylval.identifier[n] = '\0';
                     return T_Identifier; }
 
-[\t]              {
+<*>[\t]           {
                     int len = yyleng * TAB_WIDTH;
                     yylloc.last_column = yylloc.first_column + len - 1;
                     colno = yylloc.first_column + len;
@@ -184,7 +190,13 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
 
 [ ]+              {  }
 
-{NEWLINE}         { colno = 1; lineno++; }
+<*>{NEWLINE}      { 
+                    current_line.pop_back();
+                    colno = 1; 
+                    lineno++; 
+                    lexed_lines.push_back(std::move(current_line));
+                    current_line.clear();
+                  }
 
 .                 { ReportError::UnrecogChar(&yylloc, *yytext); }
 
@@ -227,4 +239,5 @@ static void DoBeforeEachAction()
     yylloc.first_column = colno;
     yylloc.last_column = yylloc.first_column + yyleng - 1;
     colno += yyleng;
+    current_line += yytext;
 }
