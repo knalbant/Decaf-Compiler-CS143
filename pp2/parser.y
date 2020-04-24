@@ -82,6 +82,12 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <declList>  DeclList 
 %type <decl>      Decl
 
+/* Precedence Rules */
+
+%left '+' '-'
+%left '*' '/'
+
+
 %%
 /* Rules
  * -----
@@ -109,6 +115,21 @@ Decl      :    T_Void               { /* pp2: replace with correct rules  */ }
           ;
           
 
+Expr      : Expr '+' Expr
+          | Expr '-' Expr
+          | Expr '*' Expr
+          | Expr '/' Expr
+          | Constant
+          ;
+
+
+Constant    : T_IntConstant 
+            | T_BoolConstant
+            | T_DoubleConstant
+            | T_BoolConstant
+            | T_StringConstant
+            | T_Null
+            ;
 
 %%
 
