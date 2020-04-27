@@ -40,8 +40,8 @@ int colno  = 1;
 
 constexpr int TAB_WIDTH = 8;
 
-std::vector<std::string> lexed_lines;
-std::string current_line;
+static std::vector<std::string> lexed_lines;
+static std::string current_line;
 
 %}
 
@@ -215,7 +215,7 @@ void InitScanner()
 
 
 const char* GetLineNumbered(int num) {
-    Assert(num >= 1 && num <= lexed_lines.size());
+    if ( num <= 0 || num >= lexed_lines.size() ) return nullptr;
     return lexed_lines[num - 1].c_str();
 }
 
