@@ -46,6 +46,8 @@ void yyerror(const char *msg); // standard error-handling routine
     char identifier[MaxIdentLen+1]; // +1 for terminating null
     Decl *decl;
     List<Decl*> *declList;
+    Expr* expr;
+    LValue *lvalue;
 }
 
 
@@ -81,11 +83,21 @@ void yyerror(const char *msg); // standard error-handling routine
  */
 %type <declList>  DeclList 
 %type <decl>      Decl
+%type <expr>      Expr Constant
+%type <lvalue>    LValue
 
 /* Precedence Rules */
 
+%nonassoc '='
+%left T_Or
+%left T_And
+%nonassoc T_Equal T_NotEqual
+%nonassoc '<' '>' T_LessEqual T_GreaterEqual
 %left '+' '-'
-%left '*' '/'
+%left '*' '/' '%'
+%right UMINUS '!'
+%left '[' '.'
+
 
 
 %%
@@ -95,40 +107,52 @@ void yyerror(const char *msg); // standard error-handling routine
  * %% markers which delimit the Rules section.
 	 
  */
+
+/*
 Program   :    DeclList            { 
                                       @1; 
-                                      /* pp2: The @1 is needed to convince 
-                                       * yacc to set up yylloc. You can remove 
-                                       * it once you have other uses of @n*/
                                       Program *program = new Program($1);
                                       // if no errors, advance to next phase
                                       if (ReportError::NumErrors() == 0) 
                                           program->Print(0);
                                     }
+          | Expr
           ;
 
 DeclList  :    DeclList Decl        { ($$=$1)->Append($2); }
           |    Decl                 { ($$ = new List<Decl*>)->Append($1); }
           ;
 
-Decl      :    T_Void               { /* pp2: replace with correct rules  */ } 
+Decl      :    T_Void               { }
           ;
-          
+*/
 
-Expr      : Expr '+' Expr
+Expr      : LValue '=' Expr { $$ = $1; } /* Fix */
+          | Constant { $$ = $1; }
+          | LValue { $$ = $1; }
+          | T_This { $$ = new This(@1); }
+          | Expr '+' Expr
           | Expr '-' Expr
           | Expr '*' Expr
           | Expr '/' Expr
-          | Constant
+          | Expr '<' Expr
+          | Expr '>' Expr
+          | Expr '%' Expr
+          | Expr T_LessEqual    Expr
+          | Expr T_GreaterEqual Expr
+          ;
+
+/* TODO: fill in Identifier arguments */
+LValue    : T_Identifier  { $$ = new FieldAccess(nullptr, new Identifier(@1, $1)); }
+          | Expr '.' T_Identifier { $$ = new FieldAccess($1, new Identifier(@3, $3)); }
+          | Expr '[' Expr ']'  { $$ = new ArrayAccess(Join(@1, @4), $1, $3); }
           ;
 
 
-Constant    : T_IntConstant 
-            | T_BoolConstant
-            | T_DoubleConstant
-            | T_BoolConstant
-            | T_StringConstant
-            | T_Null
+Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
+            | T_BoolConstant { $$ = new BoolConstant(@1, $1); }
+            | T_DoubleConstant { $$ = new DoubleConstant(@1, $1); }
+            | T_StringConstant { $$ = new StringConstant(@1, $1); }
             ;
 
 %%
@@ -155,5 +179,5 @@ Constant    : T_IntConstant
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = false;
+   yydebug = true;
 }
