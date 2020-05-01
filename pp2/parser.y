@@ -131,18 +131,18 @@ Expr      : LValue '=' Expr { $$ = $1; } /* Fix */
           | Constant { $$ = $1; }
           | LValue { $$ = $1; }
           | T_This { $$ = new This(@1); }
-          | Expr '+' Expr
-          | Expr '-' Expr
-          | Expr '*' Expr
-          | Expr '/' Expr
-          | Expr '<' Expr
-          | Expr '>' Expr
-          | Expr '%' Expr
-          | Expr T_LessEqual    Expr
-          | Expr T_GreaterEqual Expr
+          | Expr '+' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "+"), $3); }
+          | Expr '-' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "-"), $3); }
+          | Expr '*' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "*"), $3); }
+          | Expr '/' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "/"), $3); }
+          | Expr '<' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
+          | Expr '>' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
+          | Expr '%' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
+          | Expr T_LessEqual    Expr { $$ = new RelationalExpr($1, new Operator(@2, "<="), $3); }
+          | Expr T_GreaterEqual Expr { $$ = new RelationalExpr($1, new Operator(@2, ">="), $3); }
           ;
 
-/* TODO: fill in Identifier arguments */
+
 LValue    : T_Identifier  { $$ = new FieldAccess(nullptr, new Identifier(@1, $1)); }
           | Expr '.' T_Identifier { $$ = new FieldAccess($1, new Identifier(@3, $3)); }
           | Expr '[' Expr ']'  { $$ = new ArrayAccess(Join(@1, @4), $1, $3); }
@@ -179,5 +179,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = true;
+   yydebug = false;
 }
