@@ -49,6 +49,8 @@ void yyerror(const char *msg); // standard error-handling routine
     Expr* expr;
     LValue *lvalue;
     Type  *type;
+
+    List<Expr*> *actuals;
 }
 
 
@@ -84,9 +86,11 @@ void yyerror(const char *msg); // standard error-handling routine
  */
 %type <declList>  DeclList 
 %type <decl>      Decl
-%type <expr>      Expr Constant
+%type <expr>      Expr Constant Call
 %type <lvalue>    LValue
 %type <type>      Type
+
+%type <actuals>   Actuals
 
 /* Precedence Rules */
 
@@ -129,7 +133,7 @@ Decl      :    T_Void               { }
           ;
 */
 
-Expr      : LValue '=' Expr { $$ = $1; } /* Fix */
+Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3); } /* Fix */
           | Constant { $$ = $1; }
           | LValue { $$ = $1; }
           | T_This { $$ = new This(@1); }
@@ -152,6 +156,16 @@ Expr      : LValue '=' Expr { $$ = $1; } /* Fix */
           | T_ReadLine '(' ')' { $$ = new ReadLineExpr(@1); }
           | '(' Expr ')' { $$ = $2; }
           | T_NewArray '(' Expr ',' Type ')' { $$ = new NewArrayExpr(Join(@1, @6), $3, $5); }
+          | Call { $$ = $1; }
+          ;
+
+Call      : T_Identifier '(' Actuals ')'  { $$ = new Call(Join(@1, @4), nullptr, new Identifier(@1, $1), $3); }
+          | Expr '.' T_Identifier '(' Actuals ')' { $$ = new Call(Join(@1, @4), $1, new Identifier(@3, $3), $5); }
+          ;
+
+Actuals   : 
+          | Expr { ($$ = new List<Expr*>)->Append($1); }
+          | Actuals ',' Expr { ($$=$1)->Append($3); }
           ;
 
 Type      : T_Int        { $$ = Type::intType; }
