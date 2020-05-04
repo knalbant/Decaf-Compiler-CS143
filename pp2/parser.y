@@ -137,14 +137,16 @@ Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3)
           | Constant { $$ = $1; }
           | LValue { $$ = $1; }
           | T_This { $$ = new This(@1); }
+          | Call { $$ = $1; }
+          | '(' Expr ')' { $$ = $2; }
           | Expr '+' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "+"), $3); }
           | Expr '-' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "-"), $3); }
           | Expr '*' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "*"), $3); }
           | Expr '/' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "/"), $3); }
+          | Expr '%' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
           | '-' Expr %prec UMINUS { $$ = new ArithmeticExpr(new Operator(@1, "/"), $2); }
           | Expr '<' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
           | Expr '>' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
-          | Expr '%' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
           | Expr T_LessEqual    Expr { $$ = new RelationalExpr($1, new Operator(@2, "<="), $3); }
           | Expr T_GreaterEqual Expr { $$ = new RelationalExpr($1, new Operator(@2, ">="), $3); }
           | Expr T_Equal Expr { $$ = new EqualityExpr($1, new Operator(@2, ">="), $3); }
@@ -154,9 +156,8 @@ Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3)
           | '!' Expr { $$ = new LogicalExpr(new Operator(@1, "!"), $2); }
           | T_ReadInteger '(' ')' { $$ = new ReadIntegerExpr(@1); }
           | T_ReadLine '(' ')' { $$ = new ReadLineExpr(@1); }
-          | '(' Expr ')' { $$ = $2; }
+          | T_New T_Identifier { $$ = new NewExpr( Join(@1, @2), new NamedType(new Identifier(@2, $2)) ); }
           | T_NewArray '(' Expr ',' Type ')' { $$ = new NewArrayExpr(Join(@1, @6), $3, $5); }
-          | Call { $$ = $1; }
           ;
 
 Call      : T_Identifier '(' Actuals ')'  { $$ = new Call(Join(@1, @4), nullptr, new Identifier(@1, $1), $3); }
@@ -212,5 +213,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = false;
+   yydebug = true;
 }
