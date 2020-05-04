@@ -45,15 +45,18 @@ void yyerror(const char *msg); // standard error-handling routine
     double doubleConstant;
     char identifier[MaxIdentLen+1]; // +1 for terminating null
     Decl *decl;
+    VarDecl *varDecl;
     Expr* expr;
     LValue *lvalue;
     Type  *type;
-    Stmt* stmt;
+    Stmt *stmt;
+    IfStmt *ifStmt;
 
-    List<Expr*>   *exprList;
-    List<Decl*>   *declList;
-    List<VarDecl> *varDeclList;
-    List<Stmt*>   *stmtList;
+    List<Expr*>    *exprList;
+    List<Decl*>    *declList;
+    List<VarDecl*> *varDeclList;
+
+    List<Stmt*>    *stmts;
 }
 
 
@@ -88,14 +91,21 @@ void yyerror(const char *msg); // standard error-handling routine
  * pp2: You'll need to add many of these of your own.
  */
 %type <declList>     DeclList 
-%type <decl>         Decl VarDecl
+%type <decl>         Decl
+%type <varDecl>      VarDecl
 %type <expr>         Expr Constant Call OptExpr
 %type <lvalue>       LValue
 %type <type>         Type
 %type <exprList>     ExprList Actuals
-%type <varDeclList>  VarDeclList;
+%type <varDeclList>  VarDeclList
+%type <stmt>         Stmt
+%type <stmts>        Stmts
+%type <ifStmt>       IfStmt
+
 
 /* Precedence Rules */
+%nonassoc NO_ELSE
+%nonassoc T_Else
 
 %nonassoc '='
 %left T_Or
@@ -136,17 +146,27 @@ Decl      :    T_Void               { }
           ;
 */
 
-
-Stmt      : OptExpr ';'
-          | T_If '(' Expr ')' Stmt
-          | T_While '(' Expr ')' Stmt
-          | T_For '(' OptExpr ';' Expr ';' OptExpr ')' Stmt
-          | T_Break ';'
-          | T_Return OptExpr ';'
-          | T_Print '(' ExprList ')' ';'
-          | '{' VarDecl Stmt '}'
+/*  */
+Stmt      : OptExpr ';'                                     { $$ = $1; }
+          | T_While '(' Expr ')' Stmt                       { $$ = new WhileStmt($3, $5); }
+          | T_For '(' OptExpr ';' Expr ';' OptExpr ')' Stmt { $$ = new ForStmt($3, $5, $7, $9); }
+          | T_Break ';'                                     { $$ = new BreakStmt(Join(@1, @2)); }
+          | T_Return OptExpr ';'                            { $$ = new ReturnStmt(Join(@1, @3), $2); }
+          | T_Print '(' ExprList ')' ';'                    { $$ = new PrintStmt($3); }
+          | '{' VarDeclList Stmts '}'                       { $$ = new StmtBlock($2, $3); }
+          | IfStmt
           ;
 
+IfStmt   : T_If '(' Expr ')' Stmt %prec NO_ELSE { $$ = new IfStmt($3, $5, nullptr); }
+         | T_If '(' Expr ')' Stmt T_Else Stmt { $$ = new IfStmt($3, $5, $7); }
+         ;
+
+Stmts    :            { $$ = new List<Stmt*>; }
+         | Stmt Stmts { ($$=$2)->InsertAt($1, 0); }
+         ;
+
+VarDeclList :                     { $$ = new List<VarDecl*>; }
+            | VarDeclList VarDecl { ($$=$1)->Append($2); }
 
 
 VarDecl   : Type T_Identifier ';' { $$ = new VarDecl(new Identifier(@2, $2), $1); }
