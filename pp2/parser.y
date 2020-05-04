@@ -45,12 +45,15 @@ void yyerror(const char *msg); // standard error-handling routine
     double doubleConstant;
     char identifier[MaxIdentLen+1]; // +1 for terminating null
     Decl *decl;
-    List<Decl*> *declList;
     Expr* expr;
     LValue *lvalue;
     Type  *type;
+    Stmt* stmt;
 
-    List<Expr*> *actuals;
+    List<Expr*>   *exprList;
+    List<Decl*>   *declList;
+    List<VarDecl> *varDeclList;
+    List<Stmt*>   *stmtList;
 }
 
 
@@ -84,13 +87,13 @@ void yyerror(const char *msg); // standard error-handling routine
  * of the union named "declList" which is of type List<Decl*>.
  * pp2: You'll need to add many of these of your own.
  */
-%type <declList>  DeclList 
-%type <decl>      Decl
-%type <expr>      Expr Constant Call
-%type <lvalue>    LValue
-%type <type>      Type
-
-%type <actuals>   Actuals
+%type <declList>     DeclList 
+%type <decl>         Decl VarDecl
+%type <expr>         Expr Constant Call OptExpr
+%type <lvalue>       LValue
+%type <type>         Type
+%type <exprList>     ExprList Actuals
+%type <varDeclList>  VarDeclList;
 
 /* Precedence Rules */
 
@@ -133,6 +136,26 @@ Decl      :    T_Void               { }
           ;
 */
 
+
+Stmt      : OptExpr ';'
+          | T_If '(' Expr ')' Stmt
+          | T_While '(' Expr ')' Stmt
+          | T_For '(' OptExpr ';' Expr ';' OptExpr ')' Stmt
+          | T_Break ';'
+          | T_Return OptExpr ';'
+          | T_Print '(' ExprList ')' ';'
+          | '{' VarDecl Stmt '}'
+          ;
+
+
+
+VarDecl   : Type T_Identifier ';' { $$ = new VarDecl(new Identifier(@2, $2), $1); }
+          ;
+
+
+OptExpr   : Expr        { $$ = $1; }
+          |             { $$ = new EmptyExpr(); }
+
 Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3); } /* Fix */
           | Constant { $$ = $1; }
           | LValue { $$ = $1; }
@@ -164,9 +187,12 @@ Call      : T_Identifier '(' Actuals ')'  { $$ = new Call(Join(@1, @4), nullptr,
           | Expr '.' T_Identifier '(' Actuals ')' { $$ = new Call(Join(@1, @4), $1, new Identifier(@3, $3), $5); }
           ;
 
-Actuals   : 
-          | Expr { ($$ = new List<Expr*>)->Append($1); }
-          | Actuals ',' Expr { ($$=$1)->Append($3); }
+Actuals   : /* Empty */ { $$ = new List<Expr*>(); }
+          | ExprList    { $$ = $1; }
+          ;
+
+ExprList  : ExprList ',' Expr { ($$=$1)->Append($3); }
+          | Expr              { ($$ = new List<Expr*>)->Append($1); }
           ;
 
 Type      : T_Int        { $$ = Type::intType; }
