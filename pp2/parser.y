@@ -44,6 +44,7 @@ void yyerror(const char *msg); // standard error-handling routine
     char *stringConstant;
     double doubleConstant;
     char identifier[MaxIdentLen+1]; // +1 for terminating null
+
     Decl *decl;
     VarDecl *varDecl;
     FnDecl  *fnDecl;
@@ -52,12 +53,13 @@ void yyerror(const char *msg); // standard error-handling routine
     Type  *type;
     Stmt *stmt;
     IfStmt *ifStmt;
+    NamedType *namedType;
 
-    List<Expr*>    *exprList;
-    List<Decl*>    *declList;
-    List<VarDecl*> *varDeclList;
-
-    List<Stmt*>    *stmts;
+    List<Expr*>      *exprList;
+    List<Decl*>      *declList;
+    List<VarDecl*>   *varDeclList;
+    List<Stmt*>      *stmts;
+    List<NamedType*> *namedTypeList;
 }
 
 
@@ -91,8 +93,8 @@ void yyerror(const char *msg); // standard error-handling routine
  * of the union named "declList" which is of type List<Decl*>.
  * pp2: You'll need to add many of these of your own.
  */
-%type <declList>     DeclList PrototypeList
-%type <decl>         Decl InterfaceDecl
+%type <declList>     DeclList PrototypeList FieldList
+%type <decl>         Decl InterfaceDecl ClassDecl Field
 %type <fnDecl>       FnDecl FnHeader Prototype
 %type <varDecl>      Variable VarDecl
 %type <expr>         Expr Constant Call OptExpr
@@ -103,6 +105,8 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <stmt>         Stmt StmtBlock
 %type <stmts>        Stmts
 %type <ifStmt>       IfStmt
+%type <namedType>    Extends
+%type <namedTypeList> Implements NamedTypeList
 
 
 /* Precedence Rules */
@@ -129,20 +133,6 @@ void yyerror(const char *msg); // standard error-handling routine
 
  */
 
-/*
-Program   :    DeclList            {
-                                      @1;
-                                      Program *program = new Program($1);
-                                      // if no errors, advance to next phase
-                                      if (ReportError::NumErrors() == 0)
-                                          program->Print(0);
-                                    }
-          ;
-
-
-Decl      :    T_Void               { }
-          ;
-*/
 Program   :    DeclList            {
                                       @1;
                                       Program *program = new Program($1);
@@ -159,7 +149,31 @@ DeclList  :    DeclList Decl        { ($$=$1)->Append($2); }
 Decl    : VarDecl        { $$ = $1; }
         | FnDecl         { $$ = $1; }
         | InterfaceDecl  { $$ = $1; }
+        | ClassDecl      { $$ = $1; }
         ;
+
+ClassDecl : T_Class T_Identifier Extends Implements '{' FieldList '}' { $$ = new ClassDecl(new Identifier(@2, $2), $3, $4, $6); }
+          ;
+
+Extends   :                        { $$ = NULL; }
+          | T_Extends T_Identifier { $$ = new NamedType(new Identifier(@2, $2)); }
+          ;
+
+Implements :                            { $$ = new List<NamedType*>; }
+           | T_Implements NamedTypeList { $$ = $2; }
+           ;
+
+NamedTypeList : T_Identifier                    { ($$ = new List<NamedType*>)->Append(new NamedType(new Identifier(@1, $1))); }
+              | NamedTypeList ',' T_Identifier  { ($$=$1)->Append(new NamedType(new Identifier(@3, $3))); }
+              ;
+
+FieldList :    FieldList Field       { ($$=$1)->Append($2); }
+          |                          { ($$ = new List<Decl*>); }
+          ;
+
+Field : FnDecl   { $$ = $1; }
+      | VarDecl  { $$ = $1; }
+      ;
 
 InterfaceDecl : T_Interface T_Identifier '{' PrototypeList '}' { $$ = new InterfaceDecl(new Identifier(@2, $2), $4); }
               ;
@@ -178,10 +192,6 @@ FnHeader  : Type T_Identifier   '(' FormalList ')'  { $$ = new FnDecl(new Identi
           | T_Void T_Identifier '(' FormalList ')'  { $$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4); }
           ;
 
-/*
- * The grammar actually only allows for non-empty lists of formals but the provided testcases
- * indicate that an empty list of function formals should be allowed
-*/
 FormalList :          { $$ = new List<VarDecl*>; }
            |  Formals { $$ = $1; }
            ;
