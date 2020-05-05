@@ -244,16 +244,16 @@ Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3)
           | Expr '-' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "-"), $3); }
           | Expr '*' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "*"), $3); }
           | Expr '/' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "/"), $3); }
-          | Expr '%' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
+          | Expr '%' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "%"), $3); }
           | '-' Expr %prec UMINUS { $$ = new ArithmeticExpr(new Operator(@1, "/"), $2); }
           | Expr '<' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
           | Expr '>' Expr { $$ = new RelationalExpr($1, new Operator(@2, "<"), $3); }
           | Expr T_LessEqual    Expr { $$ = new RelationalExpr($1, new Operator(@2, "<="), $3); }
           | Expr T_GreaterEqual Expr { $$ = new RelationalExpr($1, new Operator(@2, ">="), $3); }
-          | Expr T_Equal Expr { $$ = new EqualityExpr($1, new Operator(@2, ">="), $3); }
-          | Expr T_NotEqual Expr { $$ = new EqualityExpr($1, new Operator(@2, ">="), $3); }
-          | Expr T_And Expr { $$ = new LogicalExpr($1, new Operator(@2, ">="), $3); }
-          | Expr T_Or  Expr { $$ = new LogicalExpr($1, new Operator(@2, ">="), $3); }
+          | Expr T_Equal Expr { $$ = new EqualityExpr($1, new Operator(@2, "=="), $3); }
+          | Expr T_NotEqual Expr { $$ = new EqualityExpr($1, new Operator(@2, "!="), $3); }
+          | Expr T_And Expr { $$ = new LogicalExpr($1, new Operator(@2, "&&"), $3); }
+          | Expr T_Or  Expr { $$ = new LogicalExpr($1, new Operator(@2, "||"), $3); }
           | '!' Expr { $$ = new LogicalExpr(new Operator(@1, "!"), $2); }
           | T_ReadInteger '(' ')' { $$ = new ReadIntegerExpr(@1); }
           | T_ReadLine '(' ')' { $$ = new ReadLineExpr(@1); }
@@ -317,5 +317,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = true;
+   yydebug = false;
 }
