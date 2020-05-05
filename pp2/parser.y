@@ -3,8 +3,8 @@
  * Bison input file to generate the parser for the compiler.
  *
  * pp2: your job is to write a parser that will construct the parse tree
- *      and if no parse errors were found, print it.  The parser should 
- *      accept the language as described in specification, and as augmented 
+ *      and if no parse errors were found, print it.  The parser should
+ *      accept the language as described in specification, and as augmented
  *      in the pp2 handout.
  */
 
@@ -28,14 +28,14 @@ void yyerror(const char *msg); // standard error-handling routine
  * input file. Here is where you declare tokens and types, add precedence
  * and associativity options, and so on.
  */
- 
-/* yylval 
+
+/* yylval
  * ------
  * Here we define the type of the yylval global variable that is used by
  * the scanner to store attibute information about the token just scanned
- * and thus communicate that information to the parser. 
+ * and thus communicate that information to the parser.
  *
- * pp2: You will need to add new fields to this union as you add different 
+ * pp2: You will need to add new fields to this union as you add different
  *      attributes to your non-terminal symbols.
  */
 %union {
@@ -46,6 +46,7 @@ void yyerror(const char *msg); // standard error-handling routine
     char identifier[MaxIdentLen+1]; // +1 for terminating null
     Decl *decl;
     VarDecl *varDecl;
+    FnDecl  *fnDecl;
     Expr* expr;
     LValue *lvalue;
     Type  *type;
@@ -66,14 +67,14 @@ void yyerror(const char *msg); // standard error-handling routine
  * Bison will assign unique numbers to these and export the #define
  * in the generated y.tab.h header file.
  */
-%token   T_Void T_Bool T_Int T_Double T_String T_Class 
+%token   T_Void T_Bool T_Int T_Double T_String T_Class
 %token   T_LessEqual T_GreaterEqual T_Equal T_NotEqual T_Dims
 %token   T_And T_Or T_Null T_Extends T_This T_Interface T_Implements
 %token   T_While T_For T_If T_Else T_Return T_Break
 %token   T_New T_NewArray T_Print T_ReadInteger T_ReadLine
 
 %token   <identifier> T_Identifier
-%token   <stringConstant> T_StringConstant 
+%token   <stringConstant> T_StringConstant
 %token   <integerConstant> T_IntConstant
 %token   <doubleConstant> T_DoubleConstant
 %token   <boolConstant> T_BoolConstant
@@ -90,15 +91,16 @@ void yyerror(const char *msg); // standard error-handling routine
  * of the union named "declList" which is of type List<Decl*>.
  * pp2: You'll need to add many of these of your own.
  */
-%type <declList>     DeclList 
+%type <declList>     DeclList
 %type <decl>         Decl
-%type <varDecl>      VarDecl
+%type <fnDecl>       FnDecl
+%type <varDecl>      Variable VarDecl
 %type <expr>         Expr Constant Call OptExpr
 %type <lvalue>       LValue
 %type <type>         Type
 %type <exprList>     ExprList Actuals
-%type <varDeclList>  VarDeclList
-%type <stmt>         Stmt
+%type <varDeclList>  VarDeclList Formals FormalList
+%type <stmt>         Stmt StmtBlock
 %type <stmts>        Stmts
 %type <ifStmt>       IfStmt
 
@@ -124,37 +126,79 @@ void yyerror(const char *msg); // standard error-handling routine
  * -----
  * All productions and actions should be placed between the start and stop
  * %% markers which delimit the Rules section.
-	 
+
  */
 
 /*
-Program   :    DeclList            { 
-                                      @1; 
+Program   :    DeclList            {
+                                      @1;
                                       Program *program = new Program($1);
                                       // if no errors, advance to next phase
-                                      if (ReportError::NumErrors() == 0) 
+                                      if (ReportError::NumErrors() == 0)
                                           program->Print(0);
                                     }
-          | Expr
+          ;
+
+
+Decl      :    T_Void               { }
+          ;
+*/
+Program   :    DeclList            {
+                                      @1;
+                                      Program *program = new Program($1);
+                                      // if no errors, advance to next phase
+                                      if (ReportError::NumErrors() == 0)
+                                          program->Print(0);
+                                    }
           ;
 
 DeclList  :    DeclList Decl        { ($$=$1)->Append($2); }
           |    Decl                 { ($$ = new List<Decl*>)->Append($1); }
           ;
 
-Decl      :    T_Void               { }
-          ;
-*/
 
+Decl    : VarDecl  { $$ = $1; }
+        | FnDecl   { $$ = $1; }
+        ;
+
+/* InterfaceDecl : T_Interface T_Identifier '{' Prototype '}' */
+/*               ; */
 /*  */
+
+FnDecl  : Type T_Identifier '(' FormalList ')' StmtBlock   { ($$ = new FnDecl(new Identifier(@2, $2), $1, $4))->SetFunctionBody($6); }
+        | T_Void T_Identifier '(' FormalList ')' StmtBlock { ($$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4))->SetFunctionBody($6); }
+        ;
+
+/* Prototype : Type T_Identifier '(' FormalList ')' ';'       { */
+/*           | T_Void T_Identifier '(' FormalList ')' ';' */
+/*           ; */
+
+/* Proto : Type T_Identifier   '(' FormalList ')' { $$ = new FnDecl(new Identifier(@2, $2), $1, $4); } */
+/*       | T_Void T_Identifier '(' FormalList ')' { $$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4); } */
+/*       ; */
+
+/*
+ * The grammar actually only allows for non-empty lists of formals but the provided testcases
+ * indicate that an empty list of function formals should be allowed
+*/
+FormalList :          { $$ = new List<VarDecl*>; }
+           |  Formals { $$ = $1; }
+           ;
+
+Formals : Variable              { ($$ = new List<VarDecl*>)->Append($1); }
+        | Formals ',' Variable { ($$=$1)->Append($3); }
+        ;
+
+StmtBlock : '{' VarDeclList Stmts '}'                       { $$ = new StmtBlock($2, $3); }
+          ;
+
 Stmt      : OptExpr ';'                                     { $$ = $1; }
           | T_While '(' Expr ')' Stmt                       { $$ = new WhileStmt($3, $5); }
           | T_For '(' OptExpr ';' Expr ';' OptExpr ')' Stmt { $$ = new ForStmt($3, $5, $7, $9); }
           | T_Break ';'                                     { $$ = new BreakStmt(Join(@1, @2)); }
           | T_Return OptExpr ';'                            { $$ = new ReturnStmt(Join(@1, @3), $2); }
           | T_Print '(' ExprList ')' ';'                    { $$ = new PrintStmt($3); }
-          | '{' VarDeclList Stmts '}'                       { $$ = new StmtBlock($2, $3); }
-          | IfStmt
+          | IfStmt                                          { $$ = $1; }
           ;
 
 IfStmt   : T_If '(' Expr ')' Stmt %prec NO_ELSE { $$ = new IfStmt($3, $5, nullptr); }
@@ -169,9 +213,11 @@ VarDeclList :                     { $$ = new List<VarDecl*>; }
             | VarDeclList VarDecl { ($$=$1)->Append($2); }
 
 
-VarDecl   : Type T_Identifier ';' { $$ = new VarDecl(new Identifier(@2, $2), $1); }
+VarDecl   : Variable ';' { $$ = $1; }
           ;
 
+Variable  : Type T_Identifier { $$ = new VarDecl(new Identifier(@2, $2), $1); }
+          ;
 
 OptExpr   : Expr        { $$ = $1; }
           |             { $$ = new EmptyExpr(); }
@@ -259,5 +305,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = true;
+   yydebug = false;
 }
