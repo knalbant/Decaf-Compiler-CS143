@@ -210,6 +210,7 @@ Stmt      : OptExpr ';'                                     { $$ = $1; }
           | T_Return OptExpr ';'                            { $$ = new ReturnStmt(Join(@1, @3), $2); }
           | T_Print '(' ExprList ')' ';'                    { $$ = new PrintStmt($3); }
           | IfStmt                                          { $$ = $1; }
+          | StmtBlock                                       { $$ = $1; }
           ;
 
 IfStmt   : T_If '(' Expr ')' Stmt %prec NO_ELSE { $$ = new IfStmt($3, $5, nullptr); }
