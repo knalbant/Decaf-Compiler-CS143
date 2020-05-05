@@ -91,9 +91,9 @@ void yyerror(const char *msg); // standard error-handling routine
  * of the union named "declList" which is of type List<Decl*>.
  * pp2: You'll need to add many of these of your own.
  */
-%type <declList>     DeclList
-%type <decl>         Decl
-%type <fnDecl>       FnDecl
+%type <declList>     DeclList PrototypeList
+%type <decl>         Decl InterfaceDecl
+%type <fnDecl>       FnDecl FnHeader Prototype
 %type <varDecl>      Variable VarDecl
 %type <expr>         Expr Constant Call OptExpr
 %type <lvalue>       LValue
@@ -156,26 +156,27 @@ DeclList  :    DeclList Decl        { ($$=$1)->Append($2); }
           |    Decl                 { ($$ = new List<Decl*>)->Append($1); }
           ;
 
-
-Decl    : VarDecl  { $$ = $1; }
-        | FnDecl   { $$ = $1; }
+Decl    : VarDecl        { $$ = $1; }
+        | FnDecl         { $$ = $1; }
+        | InterfaceDecl  { $$ = $1; }
         ;
 
-/* InterfaceDecl : T_Interface T_Identifier '{' Prototype '}' */
-/*               ; */
-/*  */
+InterfaceDecl : T_Interface T_Identifier '{' PrototypeList '}' { $$ = new InterfaceDecl(new Identifier(@2, $2), $4); }
+              ;
 
-FnDecl  : Type T_Identifier '(' FormalList ')' StmtBlock   { ($$ = new FnDecl(new Identifier(@2, $2), $1, $4))->SetFunctionBody($6); }
-        | T_Void T_Identifier '(' FormalList ')' StmtBlock { ($$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4))->SetFunctionBody($6); }
+PrototypeList :                          {  $$=new List<Decl*>; }
+              | PrototypeList Prototype  { ($$=$1)->Append($2); }
+              ;
+
+FnDecl  : FnHeader StmtBlock { ($$=$1)->SetFunctionBody($2); }
         ;
 
-/* Prototype : Type T_Identifier '(' FormalList ')' ';'       { */
-/*           | T_Void T_Identifier '(' FormalList ')' ';' */
-/*           ; */
+Prototype : FnHeader ';' { $$ = $1; }
+          ;
 
-/* Proto : Type T_Identifier   '(' FormalList ')' { $$ = new FnDecl(new Identifier(@2, $2), $1, $4); } */
-/*       | T_Void T_Identifier '(' FormalList ')' { $$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4); } */
-/*       ; */
+FnHeader  : Type T_Identifier   '(' FormalList ')'  { $$ = new FnDecl(new Identifier(@2, $2), $1, $4); }
+          | T_Void T_Identifier '(' FormalList ')'  { $$ = new FnDecl(new Identifier(@2, $2), Type::voidType, $4); }
+          ;
 
 /*
  * The grammar actually only allows for non-empty lists of formals but the provided testcases
@@ -305,5 +306,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = false;
+   yydebug = true;
 }
