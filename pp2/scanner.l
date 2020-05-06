@@ -90,7 +90,7 @@ NEQ    !=
 AND    &&
 OR     "\|\|"
 
-SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
+SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><:]
 
 %%             /* BEGIN RULES SECTION */
  /* All patterns and actions should be placed between the start and stop
@@ -120,6 +120,9 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><]
 "implements"      { return T_Implements; }
 "interface"       { return T_Interface; }
 "new"             { return T_New; }
+"default"         { return T_Default; }
+"switch"          { return T_Switch; }
+"case"            { return T_Case; }
 
 "NewArray"        { return T_NewArray; }
 "Print"           { return T_Print; }

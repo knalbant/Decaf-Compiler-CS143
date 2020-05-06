@@ -19,6 +19,7 @@
 class Decl;
 class VarDecl;
 class Expr;
+class IntConstant;
   
 class Program : public Node
 {
@@ -125,6 +126,31 @@ class PrintStmt : public Stmt
     PrintStmt(List<Expr*> *arguments);
     const char *GetPrintNameForNode() { return "PrintStmt"; }
     void PrintChildren(int indentLevel);
+};
+
+class CaseStmt : public Stmt 
+{
+  protected:
+    IntConstant *label;
+    List<Stmt*> *stmts;
+
+  public:
+    CaseStmt(IntConstant*, List<Stmt*>*);
+    const char *GetPrintNameForNode() { return "CaseStmt"; }
+    void PrintChildren(int indentLevel); 
+};
+
+class SwitchStmt : public Stmt
+{
+  protected:
+    Expr *test;
+    List<CaseStmt*> *cases;
+    List<Stmt*> *defaultStmts;
+
+  public:
+    SwitchStmt(Expr* t, List<CaseStmt*> *c, List<Stmt*> *dc);
+    const char *GetPrintNameForNode() { return "SwitchStmt"; }
+    void PrintChildren(int indentLevel); 
 };
 
 

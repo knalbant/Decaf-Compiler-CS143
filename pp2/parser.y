@@ -53,13 +53,16 @@ void yyerror(const char *msg); // standard error-handling routine
     Type  *type;
     Stmt *stmt;
     IfStmt *ifStmt;
+    SwitchStmt *switchStmt;
     NamedType *namedType;
+    CaseStmt *caseStmt;
 
     List<Expr*>      *exprList;
     List<Decl*>      *declList;
     List<VarDecl*>   *varDeclList;
     List<Stmt*>      *stmts;
     List<NamedType*> *namedTypeList;
+    List<CaseStmt*>  *cases;
 }
 
 
@@ -74,6 +77,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %token   T_And T_Or T_Null T_Extends T_This T_Interface T_Implements
 %token   T_While T_For T_If T_Else T_Return T_Break
 %token   T_New T_NewArray T_Print T_ReadInteger T_ReadLine
+%token   T_Default T_Case T_Switch
 
 %token   <identifier> T_Identifier
 %token   <stringConstant> T_StringConstant
@@ -103,7 +107,10 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <exprList>     ExprList Actuals
 %type <varDeclList>  VarDeclList Formals FormalList
 %type <stmt>         Stmt StmtBlock
-%type <stmts>        Stmts
+%type <caseStmt>     Case
+%type <cases>        Cases
+%type <switchStmt>   SwitchStmt
+%type <stmts>        Stmts DefaultCase
 %type <ifStmt>       IfStmt
 %type <namedType>    Extends
 %type <namedTypeList> Implements NamedTypeList
@@ -211,6 +218,7 @@ Stmt      : OptExpr ';'                                     { $$ = $1; }
           | T_Print '(' ExprList ')' ';'                    { $$ = new PrintStmt($3); }
           | IfStmt                                          { $$ = $1; }
           | StmtBlock                                       { $$ = $1; }
+          | SwitchStmt                                      { $$ = $1; }
           ;
 
 IfStmt   : T_If '(' Expr ')' Stmt %prec NO_ELSE { $$ = new IfStmt($3, $5, nullptr); }
@@ -220,6 +228,21 @@ IfStmt   : T_If '(' Expr ')' Stmt %prec NO_ELSE { $$ = new IfStmt($3, $5, nullpt
 Stmts    :            { $$ = new List<Stmt*>; }
          | Stmt Stmts { ($$=$2)->InsertAt($1, 0); }
          ;
+
+
+SwitchStmt : T_Switch '(' Expr ')' '{' Cases DefaultCase '}' { $$ = new SwitchStmt($3, $6, $7); }
+           ;
+
+Cases : Case        { ($$=new List<CaseStmt*>)->Append($1); }
+      | Cases Case  { ($$=$1)->Append($2); }
+      ;
+
+Case  : T_Case T_IntConstant ':' Stmts { $$ = new CaseStmt(new IntConstant(@2, $2), $4); }
+      ;
+
+DefaultCase :                     { $$ = new List<Stmt*>; }
+            | T_Default ':' Stmts { $$ = $3; }
+            ; 
 
 VarDeclList :                     { $$ = new List<VarDecl*>; }
             | VarDeclList VarDecl { ($$=$1)->Append($2); }
@@ -318,5 +341,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = false;
+   yydebug = true;
 }
