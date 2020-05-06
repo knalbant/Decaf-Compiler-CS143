@@ -78,6 +78,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %token   T_While T_For T_If T_Else T_Return T_Break
 %token   T_New T_NewArray T_Print T_ReadInteger T_ReadLine
 %token   T_Default T_Case T_Switch
+%token   T_Incr T_Decr
 
 %token   <identifier> T_Identifier
 %token   <stringConstant> T_StringConstant
@@ -127,7 +128,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %nonassoc '<' '>' T_LessEqual T_GreaterEqual
 %left '+' '-'
 %left '*' '/' '%'
-%right UMINUS '!'
+%nonassoc UMINUS '!' T_Incr T_Decr
 %left '[' '.'
 
 
@@ -257,12 +258,14 @@ Variable  : Type T_Identifier { $$ = new VarDecl(new Identifier(@2, $2), $1); }
 OptExpr   : Expr        { $$ = $1; }
           |             { $$ = new EmptyExpr(); }
 
-Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3); } /* Fix */
+Expr      : LValue '=' Expr { $$ = new AssignExpr($1, new Operator(@2, "="), $3); }
           | Constant { $$ = $1; }
           | LValue { $$ = $1; }
           | T_This { $$ = new This(@1); }
           | Call { $$ = $1; }
           | '(' Expr ')' { $$ = $2; }
+          | LValue T_Incr { $$ = new PostfixExpr(new Operator(@2, "++"), $1); }
+          | LValue T_Decr { $$ = new PostfixExpr(new Operator(@2, "--"), $1); }
           | Expr '+' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "+"), $3); }
           | Expr '-' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "-"), $3); }
           | Expr '*' Expr { $$ = new ArithmeticExpr($1, new Operator(@2, "*"), $3); }
@@ -304,9 +307,9 @@ Type      : T_Int        { $$ = Type::intType; }
           | Type T_Dims  { $$ = new ArrayType(Join(@1, @2), $1); }
           ;
 
-LValue    : T_Identifier  { $$ = new FieldAccess(nullptr, new Identifier(@1, $1)); }
+LValue    : T_Identifier          { $$ = new FieldAccess(nullptr, new Identifier(@1, $1)); }
           | Expr '.' T_Identifier { $$ = new FieldAccess($1, new Identifier(@3, $3)); }
-          | Expr '[' Expr ']'  { $$ = new ArrayAccess(Join(@1, @4), $1, $3); }
+          | Expr '[' Expr ']'     { $$ = new ArrayAccess(Join(@1, @4), $1, $3); }
           ;
 
 
@@ -341,5 +344,5 @@ Constant    : T_IntConstant { $$ = new IntConstant(@1, $1); }
 void InitParser()
 {
    PrintDebug("parser", "Initializing parser");
-   yydebug = true;
+   yydebug = false;
 }

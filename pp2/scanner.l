@@ -138,6 +138,9 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><:]
 {EQ}  { return T_Equal; }
 {NEQ} { return T_NotEqual; }
 
+"++"  { return T_Incr; }
+"--"  { return T_Decr; }
+
  /* Handle all single character operators and misc. punctuation */
 {SINGLE_CHAR_OPS_PUNC} { return *yytext; }
 
