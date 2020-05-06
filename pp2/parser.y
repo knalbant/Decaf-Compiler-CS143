@@ -46,6 +46,7 @@ void yyerror(const char *msg); // standard error-handling routine
     char identifier[MaxIdentLen+1]; // +1 for terminating null
 
     Decl *decl;
+    NamedType *namedType;
     VarDecl *varDecl;
     FnDecl  *fnDecl;
     Expr* expr;
@@ -53,16 +54,17 @@ void yyerror(const char *msg); // standard error-handling routine
     Type  *type;
     Stmt *stmt;
     IfStmt *ifStmt;
+
     SwitchStmt *switchStmt;
-    NamedType *namedType;
-    CaseStmt *caseStmt;
+    Case *caseStmt;
+    DefaultCase *defaultCase;
 
     List<Expr*>      *exprList;
     List<Decl*>      *declList;
     List<VarDecl*>   *varDeclList;
     List<Stmt*>      *stmts;
     List<NamedType*> *namedTypeList;
-    List<CaseStmt*>  *cases;
+    List<Case*>  *cases;
 }
 
 
@@ -98,23 +100,24 @@ void yyerror(const char *msg); // standard error-handling routine
  * of the union named "declList" which is of type List<Decl*>.
  * pp2: You'll need to add many of these of your own.
  */
-%type <declList>     DeclList PrototypeList FieldList
-%type <decl>         Decl InterfaceDecl ClassDecl Field
-%type <fnDecl>       FnDecl FnHeader Prototype
-%type <varDecl>      Variable VarDecl
-%type <expr>         Expr Constant Call OptExpr
-%type <lvalue>       LValue
-%type <type>         Type
-%type <exprList>     ExprList Actuals
-%type <varDeclList>  VarDeclList Formals FormalList
-%type <stmt>         Stmt StmtBlock
-%type <caseStmt>     Case
-%type <cases>        Cases
-%type <switchStmt>   SwitchStmt
-%type <stmts>        Stmts DefaultCase
-%type <ifStmt>       IfStmt
-%type <namedType>    Extends
-%type <namedTypeList> Implements NamedTypeList
+%type <declList>        DeclList PrototypeList FieldList
+%type <decl>            Decl InterfaceDecl ClassDecl Field
+%type <fnDecl>          FnDecl FnHeader Prototype
+%type <varDecl>         Variable VarDecl
+%type <expr>            Expr Constant Call OptExpr
+%type <lvalue>          LValue
+%type <type>            Type
+%type <exprList>        ExprList Actuals
+%type <varDeclList>     VarDeclList Formals FormalList
+%type <stmt>            Stmt StmtBlock
+%type <caseStmt>        Case
+%type <cases>           Cases
+%type <switchStmt>      SwitchStmt
+%type <defaultCase> DefaultCase
+%type <stmts>           Stmts
+%type <ifStmt>          IfStmt
+%type <namedType>       Extends
+%type <namedTypeList>   Implements NamedTypeList
 
 
 /* Precedence Rules */
@@ -234,15 +237,15 @@ Stmts    :            { $$ = new List<Stmt*>; }
 SwitchStmt : T_Switch '(' Expr ')' '{' Cases DefaultCase '}' { $$ = new SwitchStmt($3, $6, $7); }
            ;
 
-Cases : Case        { ($$=new List<CaseStmt*>)->Append($1); }
+Cases : Case        { ($$=new List<Case*>)->Append($1); }
       | Cases Case  { ($$=$1)->Append($2); }
       ;
 
-Case  : T_Case T_IntConstant ':' Stmts { $$ = new CaseStmt(new IntConstant(@2, $2), $4); }
+Case  : T_Case T_IntConstant ':' Stmts { $$ = new Case(new IntConstant(@2, $2), $4); }
       ;
 
-DefaultCase :                     { $$ = new List<Stmt*>; }
-            | T_Default ':' Stmts { $$ = $3; }
+DefaultCase :                     { $$ = new DefaultCase(new List<Stmt*>); }
+            | T_Default ':' Stmts { $$ = new DefaultCase($3); }
             ; 
 
 VarDeclList :                     { $$ = new List<VarDecl*>; }
