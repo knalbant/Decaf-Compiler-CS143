@@ -40,12 +40,13 @@ int colno  = 1;
 
 constexpr int TAB_WIDTH = 8;
 
-static std::vector<std::string> lexed_lines;
-static std::string current_line;
+static std::vector<std::string> lines;
 
 %}
 
+%x MULTI_COMMENT COPY
 %option noyywrap
+%option stack
 
  /* The section before the first %% is the Definitions section of the lex
   * input file. Here is where you set options for the scanner, define lex
@@ -78,7 +79,6 @@ INVALID_STRING   {DOUBLE_QUOTE}[^\n\"]*
 
 NEWLINE          "\n"|"\r\n"
 
-%x MULTI_COMMENT
 S_COMMENT        "//".*
 M_COMMENT_S      "/*"
 M_COMMENT_F      "*/"
@@ -96,6 +96,29 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><:]
  /* All patterns and actions should be placed between the start and stop
   * %% markers which delimit the Rules section.
   */
+
+<COPY>.*                 {
+                           lines.emplace_back(yytext);
+                           colno = 1;
+                           yy_pop_state();
+                           yyless(0);
+                         }
+
+<COPY><<EOF>>            { yy_pop_state(); }
+
+<*>\n                    {
+
+                           colno = 1; lineno++;
+                           if (YYSTATE == COPY)
+                             lines.push_back("");
+                           else
+                             yy_push_state(COPY);
+                         }
+
+<*>[\t]                  { colno += TAB_WIDTH - colno % TAB_WIDTH + 1; }
+
+[ ]+                     ;
+
 
  /*
   * The following set of definitions correspond to reserved words in the
@@ -174,21 +197,6 @@ SINGLE_CHAR_OPS_PUNC  [+\-*/}{\[\])(\.,;!=%><:]
                     yylval.identifier[n] = '\0';
                     return T_Identifier; }
 
-<*>[\t]           {
-                    int len = yyleng * TAB_WIDTH;
-                    yylloc.last_column = yylloc.first_column + len - 1;
-                    colno = yylloc.first_column + len;
-                  }
-
-[ ]+              {  }
-
-<*>{NEWLINE}      { 
-                    current_line.pop_back();
-                    colno = 1; 
-                    lineno++; 
-                    lexed_lines.push_back(std::move(current_line));
-                    current_line.clear();
-                  }
 
 .                 { ReportError::UnrecogChar(&yylloc, *yytext); }
 
@@ -217,12 +225,15 @@ void InitScanner()
 {
     PrintDebug("lex", "Initializing scanner");
     yy_flex_debug = false;
+    yy_push_state(COPY);
+    lineno = 1;
+    colno  = 1;
 }
 
 
 const char* GetLineNumbered(int num) {
-    if ( num <= 0 || num >= lexed_lines.size() ) return nullptr;
-    return lexed_lines[num - 1].c_str();
+    if ( num <= 0 || num > lines.size() ) return nullptr;
+    return lines[num - 1].c_str();
 }
 
 /* Function: DoBeforeEachAction()
@@ -236,5 +247,4 @@ static void DoBeforeEachAction()
     yylloc.first_column = colno;
     yylloc.last_column = yylloc.first_column + yyleng - 1;
     colno += yyleng;
-    current_line += yytext;
 }
