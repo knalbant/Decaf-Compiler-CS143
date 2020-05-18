@@ -4,9 +4,6 @@
  * expressions in the parse tree.  For each expression in the
  * language (add, call, New, etc.) there is a corresponding
  * node class for that construct. 
- *
- * pp3: You will need to extend the Expr classes to implement 
- * semantic analysis for rules pertaining to expressions.
  */
 
 
@@ -34,6 +31,7 @@ class Expr : public Stmt
 class EmptyExpr : public Expr
 {
   public:
+    const char *GetPrintNameForNode() { return "Empty"; }
 };
 
 class IntConstant : public Expr 
@@ -43,6 +41,7 @@ class IntConstant : public Expr
   
   public:
     IntConstant(yyltype loc, int val);
+    const char *GetPrintNameForNode() { return "IntConstant"; }
 };
 
 class DoubleConstant : public Expr 
@@ -52,6 +51,7 @@ class DoubleConstant : public Expr
     
   public:
     DoubleConstant(yyltype loc, double val);
+    const char *GetPrintNameForNode() { return "DoubleConstant"; }
 };
 
 class BoolConstant : public Expr 
@@ -61,6 +61,7 @@ class BoolConstant : public Expr
     
   public:
     BoolConstant(yyltype loc, bool val);
+    const char *GetPrintNameForNode() { return "BoolConstant"; }
 };
 
 class StringConstant : public Expr 
@@ -70,12 +71,14 @@ class StringConstant : public Expr
     
   public:
     StringConstant(yyltype loc, const char *val);
+    const char *GetPrintNameForNode() { return "StringConstant"; }
 };
 
 class NullConstant: public Expr 
 {
   public: 
     NullConstant(yyltype loc) : Expr(loc) {}
+    const char *GetPrintNameForNode() { return "NullConstant"; }
 };
 
 class Operator : public Node 
@@ -85,7 +88,7 @@ class Operator : public Node
     
   public:
     Operator(yyltype loc, const char *tok);
-    friend ostream& operator<<(ostream& out, Operator *o) { return out << o->tokenString; }
+    const char *GetPrintNameForNode() { return "Operator"; }
  };
  
 class CompoundExpr : public Expr
@@ -104,12 +107,24 @@ class ArithmeticExpr : public CompoundExpr
   public:
     ArithmeticExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
     ArithmeticExpr(Operator *op, Expr *rhs) : CompoundExpr(op,rhs) {}
+    const char *GetPrintNameForNode() { return "ArithmeticExpr"; }
+};
+
+class PostfixExpr : public Expr 
+{
+  protected:
+    Operator *op;
+    Expr *expr;
+  public:
+    PostfixExpr(Operator *, Expr* ); 
+    const char *GetPrintNameForNode() { return "PostfixExpr"; }
 };
 
 class RelationalExpr : public CompoundExpr 
 {
   public:
     RelationalExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
+    const char *GetPrintNameForNode() { return "RelationalExpr"; }
 };
 
 class EqualityExpr : public CompoundExpr 
@@ -144,6 +159,7 @@ class This : public Expr
 {
   public:
     This(yyltype loc) : Expr(loc) {}
+    const char *GetPrintNameForNode() { return "This"; }
 };
 
 class ArrayAccess : public LValue 
@@ -153,6 +169,7 @@ class ArrayAccess : public LValue
     
   public:
     ArrayAccess(yyltype loc, Expr *base, Expr *subscript);
+    const char *GetPrintNameForNode() { return "ArrayAccess"; }
 };
 
 /* Note that field access is used both for qualified names
@@ -168,6 +185,7 @@ class FieldAccess : public LValue
     
   public:
     FieldAccess(Expr *base, Identifier *field); //ok to pass NULL base
+    const char *GetPrintNameForNode() { return "FieldAccess"; }
 };
 
 /* Like field access, call is used both for qualified base.field()
@@ -183,6 +201,7 @@ class Call : public Expr
     
   public:
     Call(yyltype loc, Expr *base, Identifier *field, List<Expr*> *args);
+    const char *GetPrintNameForNode() { return "Call"; }
 };
 
 class NewExpr : public Expr
@@ -192,6 +211,7 @@ class NewExpr : public Expr
     
   public:
     NewExpr(yyltype loc, NamedType *clsType);
+    const char *GetPrintNameForNode() { return "NewExpr"; }
 };
 
 class NewArrayExpr : public Expr
@@ -202,18 +222,21 @@ class NewArrayExpr : public Expr
     
   public:
     NewArrayExpr(yyltype loc, Expr *sizeExpr, Type *elemType);
+    const char *GetPrintNameForNode() { return "NewArrayExpr"; }
 };
 
 class ReadIntegerExpr : public Expr
 {
   public:
     ReadIntegerExpr(yyltype loc) : Expr(loc) {}
+    const char *GetPrintNameForNode() { return "ReadIntegerExpr"; }
 };
 
 class ReadLineExpr : public Expr
 {
   public:
     ReadLineExpr(yyltype loc) : Expr (loc) {}
+    const char *GetPrintNameForNode() { return "ReadLineExpr"; }
 };
 
     

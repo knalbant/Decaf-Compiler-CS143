@@ -13,21 +13,13 @@ Program::Program(List<Decl*> *d) {
     (decls=d)->SetParentAll(this);
 }
 
-void Program::Check() {
-    /* pp3: here is where the semantic analyzer is kicked off.
-     *      The general idea is perform a tree traversal of the
-     *      entire program, examining all constructs for compliance
-     *      with the semantic rules.  Each node can have its own way of
-     *      checking itself, which makes for a great use of inheritance
-     *      and polymorphism in the node classes.
-     */
-}
 
 StmtBlock::StmtBlock(List<VarDecl*> *d, List<Stmt*> *s) {
     Assert(d != NULL && s != NULL);
     (decls=d)->SetParentAll(this);
     (stmts=s)->SetParentAll(this);
 }
+
 
 ConditionalStmt::ConditionalStmt(Expr *t, Stmt *b) { 
     Assert(t != NULL && b != NULL);
@@ -41,6 +33,8 @@ ForStmt::ForStmt(Expr *i, Expr *t, Expr *s, Stmt *b): LoopStmt(t, b) {
     (step=s)->SetParent(this);
 }
 
+
+
 IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) { 
     Assert(t != NULL && tb != NULL); // else can be NULL
     elseBody = eb;
@@ -48,14 +42,37 @@ IfStmt::IfStmt(Expr *t, Stmt *tb, Stmt *eb): ConditionalStmt(t, tb) {
 }
 
 
+
 ReturnStmt::ReturnStmt(yyltype loc, Expr *e) : Stmt(loc) { 
     Assert(e != NULL);
     (expr=e)->SetParent(this);
 }
+
   
 PrintStmt::PrintStmt(List<Expr*> *a) {    
     Assert(a != NULL);
     (args=a)->SetParentAll(this);
+}
+
+
+Case::Case(IntConstant* ic, List<Stmt*>* s) {
+    Assert(ic != NULL && s != NULL);
+    (label=ic)->SetParent(this);
+    (stmts=s)->SetParentAll(this);
+}
+
+
+DefaultCase::DefaultCase(List<Stmt*> *s) {
+    Assert(s != NULL);
+    (stmts=s)->SetParentAll(this);
+}
+
+
+SwitchStmt::SwitchStmt(Expr* t, List<Case*> *c, DefaultCase* dc) {
+    Assert(t != NULL && c != NULL && dc != NULL); 
+    (test=t)->SetParent(this);
+    (cases=c)->SetParentAll(this);
+    (defaultCase=dc)->SetParent(this); 
 }
 
 
